@@ -4,6 +4,7 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 
 import Emulator
+import Op
 
 main :: IO ()
 main = do
@@ -22,4 +23,7 @@ handle_events :: Event -> Chip8 -> Chip8
 handle_events _ w = w
 
 step_world :: Float -> Chip8 -> Chip8
-step_world _ w = w
+step_world _ w = case exec_op w 0 0 0 0 of
+  Left emu -> emu
+  Right err -> error err
+    

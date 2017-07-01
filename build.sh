@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ghc -threaded -o chip8 main.hs emu.hs
+ghc -threaded -o chip8 main.hs emu.hs op.hs

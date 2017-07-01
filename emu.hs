@@ -10,6 +10,7 @@ data Chip8 = Chip8 {
   mem            :: [Int],     -- 4096 1-byte address
   regs           :: [Int],     -- 16 registers
   stack          :: [Int],     -- 16(?) levels of addresses
+  pc             :: Int,
   delay_timer    :: Int,
   sound_timer    :: Int,
   keyboard       :: [Bool],    -- 16 keys
@@ -41,6 +42,7 @@ init_emu = Chip8 {
   mem = fontset ++ (take 4016 $ repeat 0),
   regs = take 16 $ repeat 0,
   stack = take 16 $ repeat 0,
+  pc = 512,
   delay_timer = 0,
   sound_timer = 0,
   keyboard = take 16 $ repeat False,
