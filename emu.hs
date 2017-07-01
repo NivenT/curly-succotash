@@ -1,6 +1,10 @@
 module Emulator (
-  Chip8
+  Chip8,
+  init_emu,
+  render_emu
 ) where
+
+import Graphics.Gloss
 
 data Chip8 = Chip8 {
   mem            :: [Int],     -- 4096 1-byte address
@@ -43,3 +47,13 @@ init_emu = Chip8 {
   screen = take 64 . repeat . take 32 $ repeat False
 }
   
+square :: Int -> Int -> Picture
+square r c = Polygon $ map f [(r,c), (r,c+1), (r+1,c+1), (r+1,c)]
+  where f (r, c) = (800.0/32.0 * (fromIntegral c) - 400.0, 600.0/64.0 * (fromIntegral r) - 300.0)
+
+render_emu :: Chip8 -> Picture
+render_emu emu = pictures . map drawRow . zip [0..] $ screen emu
+  where drawRow (r, row) = pictures . map (drawPixel r) $ zip [0..] row
+        drawPixel r (c, pix)
+          | pix       = Color white $ square r c
+          | otherwise = Color black $ square r c
