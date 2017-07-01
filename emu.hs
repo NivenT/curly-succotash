@@ -3,23 +3,27 @@ module Emulator (
   init_emu,
   render_emu,
   incr_pc,
-  get_opcode
+  get_opcode,
+  decr_timers,
+  load_game
 ) where
 
 import Graphics.Gloss
+import Data.Word
 
 data Chip8 = Chip8 {
-  mem            :: [Int],     -- 4096 1-byte address
-  regs           :: [Int],     -- 16 registers
+  mem            :: [Word8],     -- 4096 1-byte address
+  regs           :: [Word8],     -- 16 registers
   stack          :: [Int],     -- 16(?) levels of addresses
   pc             :: Int,
+  sp             :: Int,
   delay_timer    :: Int,
   sound_timer    :: Int,
   keyboard       :: [Bool],    -- 16 keys
   screen         :: [[Bool]]   -- 64x32 pixels
 } deriving (Show)
 
-fontset :: [Int]
+fontset :: [Word8]
 fontset = [
   240, 144, 144, 144, 240,  -- 0
   32 , 96 , 32 , 32 , 112,  -- 1
@@ -45,6 +49,7 @@ init_emu = Chip8 {
   regs = take 16 $ repeat 0,
   stack = take 16 $ repeat 0,
   pc = 512,
+  sp = 0,
   delay_timer = 0,
   sound_timer = 0,
   keyboard = take 16 $ repeat False,
@@ -67,6 +72,14 @@ incr_pc :: Chip8 -> Chip8
 incr_pc emu = emu{pc=p+2} where p = pc emu
 
 get_opcode :: Chip8 -> Int
-get_opcode emu = 256 * (m!!p) + m!!(p+1)
+get_opcode emu = fromIntegral $ 256 * (toInteger (m!!p)) + (toInteger (m!!(p+1)))
   where m = mem emu
         p = pc emu
+
+decr_timers :: Chip8 -> Chip8
+decr_timers emu = emu{delay_timer = min 0 $ d-1, sound_timer = min 0 $ s-1}
+  where d = delay_timer emu
+        s = sound_timer emu
+
+load_game :: Chip8 -> [Word8] -> Chip8
+load_game emu game = emu{mem = fontset ++ game ++ [0..]}

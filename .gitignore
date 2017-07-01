@@ -2,3 +2,4 @@
 *~
 *.hi
 chip8
+games/*
