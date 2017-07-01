@@ -1,11 +1,18 @@
 module Emulator (
   Chip8,
+  mem,
+  regs,
+  stack,
+  pc,
+  sp,
+  keyboard,
+  screen,
   init_emu,
   render_emu,
   incr_pc,
   get_opcode,
   decr_timers,
-  load_game
+  load_game,
 ) where
 
 import Graphics.Gloss
