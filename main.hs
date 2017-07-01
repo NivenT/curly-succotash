@@ -3,6 +3,8 @@ module Main (main) where
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 
+import Emulator
+
 main :: IO ()
 main = do
   play window background fps world world_to_pic handle_events step_world
