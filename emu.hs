@@ -1,7 +1,9 @@
 module Emulator (
   Chip8,
   init_emu,
-  render_emu
+  render_emu,
+  incr_pc,
+  get_opcode
 ) where
 
 import Graphics.Gloss
@@ -59,3 +61,12 @@ render_emu emu = pictures . map drawRow . zip [0..] $ screen emu
         drawPixel r (c, pix)
           | pix       = Color white $ square r c
           | otherwise = Color black $ square r c
+
+-- opcodes are 2 bytes long
+incr_pc :: Chip8 -> Chip8
+incr_pc emu = emu{pc=p+2} where p = pc emu
+
+get_opcode :: Chip8 -> Int
+get_opcode emu = 256 * (m!!p) + m!!(p+1)
+  where m = mem emu
+        p = pc emu

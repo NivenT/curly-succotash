@@ -23,7 +23,7 @@ handle_events :: Event -> Chip8 -> Chip8
 handle_events _ w = w
 
 step_world :: Float -> Chip8 -> Chip8
-step_world _ w = case exec_op w 0 0 0 0 of
+step_world _ w = case exec_op w (get_opcode w) of
   Left emu -> emu
   Right err -> error err
     
