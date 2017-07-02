@@ -6,7 +6,7 @@ module Emulator (
   ptr,
   pc,
   sp,
-  keyboard,
+  keys,
   screen,
   init_emu,
   render_emu,
@@ -28,7 +28,7 @@ data Chip8 = Chip8 {
   sp             :: Int,
   delay_timer    :: Int,
   sound_timer    :: Int,
-  keyboard       :: [Bool],    -- 16 keys
+  keys           :: [Bool],    -- 16 keys
   screen         :: [[Bool]]   -- 64x32 pixels
 } deriving (Show)
 
@@ -57,11 +57,12 @@ init_emu = Chip8 {
   mem = fontset ++ (take 4016 $ repeat 0),
   regs = take 16 $ repeat 0,
   stack = take 16 $ repeat 0,
+  ptr = 0,
   pc = 512,
   sp = 0,
   delay_timer = 0,
   sound_timer = 0,
-  keyboard = take 16 $ repeat False,
+  keys = take 16 $ repeat False,
   screen = take 64 . repeat . take 32 $ repeat False
 }
   

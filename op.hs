@@ -43,14 +43,20 @@ draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag 
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
   | op `elem` [0xb000..0xbfff] = let n = (.&.) op 12
-                                     p = pc emu
                                  in Left (rng, emu{pc=p+n-2})
   | op `elem` [0xc000..0xcfff] = let (r, g') = rand_byte rng
-                                     rs      = regs emu
                                      n       = fromIntegral $ (.&.) op 8
                                      val     = (.&.) r n
                                  in Left (g', emu{regs=rpl_nth rs x val})
   | op `elem` [0xd000..0xdfff] = Left (rng, draw_sprite emu x y $ (.&.) op 4)
+  | ((.&.) op 0xF000) == 0xe && ((.&.) op 0x00ff) == 0x9e = if ks!!(fromIntegral . toInteger $ vx)
+                                                               then Left (rng, emu{pc=p+2})
+                                                               else Left (rng, emu)
   | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
     where x = (`shiftR` 8) $ (.&.) op 0x0F00
           y = (`shiftR` 4) $ (.&.) op 0x00F0
+          ks = keys emu
+          rs = regs emu
+          vx = rs!!x
+          vy = rs!!y
+          p = pc emu
