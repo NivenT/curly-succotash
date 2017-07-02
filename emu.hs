@@ -92,4 +92,4 @@ decr_timers emu = emu{delay_timer = min 0 $ d-1, sound_timer = min 0 $ s-1}
         s = sound_timer emu
 
 load_game :: Chip8 -> [Word8] -> Chip8
-load_game emu game = emu{mem = fontset ++ game ++ [0..]}
+load_game emu game = emu{mem = fontset ++ (take 432 [0..]) ++  game ++ [0..]}
