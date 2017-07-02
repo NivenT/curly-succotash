@@ -16,6 +16,7 @@ module Emulator (
   get_opcode,
   decr_timers,
   load_game,
+  disp_state,
 ) where
 
 import Graphics.Gloss
@@ -95,3 +96,11 @@ decr_timers emu = emu{delay_timer = max 0 $ d-1, sound_timer = max 0 $ s-1}
 
 load_game :: [Word8] -> Chip8
 load_game game = init_emu{mem = take 4096 $ fontset ++ (take 432 (repeat 0)) ++ game ++ (repeat 0)}
+
+disp_state :: Chip8 -> String
+disp_state emu = "{\n" ++
+  "\tregs = " ++ (show (regs emu)) ++ "\n" ++
+  "\tptr  = " ++ (show (ptr emu)) ++ "\n" ++
+  "\tsp   = " ++ (show (sp emu)) ++ "\n" ++
+  "\tpc   = " ++ (show (pc emu)) ++ "\n" ++
+  "}"

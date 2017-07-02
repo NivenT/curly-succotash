@@ -37,7 +37,7 @@ handle_events :: (RandomGen g) => Event -> World g -> World g
 handle_events _ w = w
 
 step_world :: (RandomGen g) => Float -> World g -> World g
-step_world _ (_, emu) | trace ("Running instruction 0x" ++ (showHex (get_opcode emu) "...")) False = undefined
+-- step_world _ (_, emu) | trace ("Running instruction 0x" ++ (showHex (get_opcode emu) "...")) False = undefined
 step_world _ (rng, emu) = case exec_op emu (get_opcode emu) rng of
   Left (rng, emu) -> (rng, decr_timers . incr_pc $ emu)
   Right err -> error err
