@@ -40,16 +40,31 @@ draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag 
                       bit = 0 /= ((.&.) (m!!(p+fromIntegral i)) (shiftR 128 j))
                   in (xor v bit, bit && (bit == v))
 
+in_range :: Int -> Int -> Int -> Bool
+in_range val min len = min <= val && val <= min + len
+
 -- Todo: Replace `elem` with in_range function
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
-  | op `elem` [0x6000..0x6fff] = let n = fromIntegral $ (.&.) op 0x00ff
+  | in_range op 0x1000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
+                                 in Left (rng, emu{pc=n-2})
+  | in_range op 0x2000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
+                                 in Left (rng, emu{pc=n-2, sp=s+1, stack=rpl_nth ss s p})
+  | in_range op 0x3000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
+                                 in if n == vx
+                                       then Left (rng, emu{pc=p+2})
+                                       else Left (rng, emu)
+  | in_range op 0x4000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
+                                 in if n == vx
+                                       then Left (rng, emu)
+                                       else Left (rng, emu{pc=p+2})
+  | in_range op 0x6000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x n})
-  | op `elem` [0x7000..0x7fff] = let n = fromIntegral $ (.&.) op 0x00ff
+  | in_range op 0x7000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x (vx+n)})
-  | op `elem` [0xb000..0xbfff] = let n = (.&.) op 0x0fff
+  | in_range op 0xb000 0x1000  = let n = (.&.) op 0x0fff
                                  in Left (rng, emu{pc=p+n-2})
-  | op `elem` [0xc000..0xcfff] = let (r, g') = rand_byte rng
+  | in_range op 0xc000 0x1000  = let (r, g') = rand_byte rng
                                      n       = fromIntegral $ (.&.) op 0x00ff
                                      val     = (.&.) r n
                                  in Left (g', emu{regs=rpl_nth rs x val})
@@ -69,3 +84,5 @@ exec_op emu op rng
           vx = rs!!x
           vy = rs!!y
           p = pc emu
+          s = sp emu
+          ss = stack emu
