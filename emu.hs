@@ -8,6 +8,8 @@ module Emulator (
   sp,
   keys,
   screen,
+  delay_timer,
+  sound_timer,
   init_emu,
   render_emu,
   incr_pc,

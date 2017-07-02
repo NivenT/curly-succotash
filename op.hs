@@ -37,15 +37,17 @@ draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag 
         (s', flag) = (map (\(v, b) -> v) s, any (\(v, b) -> b) s)
         f i j v = let x = mod (vx+fromIntegral j) 64
                       y = mod (vy+fromIntegral i) 32
-                      bit = 0 /= ((.&.) (m!!(p+fromIntegral i)) (shiftR 128 j))
+                      bit = 0 /= ((.&.) (m!!(mod (p+fromIntegral i) 16)) (shiftR 128 j))
                   in (xor v bit, bit && (bit == v))
 
 in_range :: Int -> Int -> Int -> Bool
-in_range val min len = min <= val && val <= min + len
+in_range val min len = min <= val && val < min + len
 
 -- Todo: Replace `elem` with in_range function
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
+  | op == 0x00e0               = Left (rng, emu{screen = screen init_emu})
+  | op == 0x00ee               = Left (rng, emu{pc=ss!!(s-1), sp=s-1})
   | in_range op 0x1000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{pc=n-2})
   | in_range op 0x2000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
@@ -68,14 +70,15 @@ exec_op emu op rng
                                      n       = fromIntegral $ (.&.) op 0x00ff
                                      val     = (.&.) r n
                                  in Left (g', emu{regs=rpl_nth rs x val})
-  | op `elem` [0xd000..0xdfff] = Left (rng, draw_sprite emu x y $ (.&.) op 4)
-  | ((.&.) op 0xf000) == 0xe && ((.&.) op 0x00ff) == 0x9e = if ks!!(fromIntegral . toInteger $ vx)
-                                                               then Left (rng, emu{pc=p+2})
-                                                               else Left (rng, emu)
-  | ((.&.) op 0xf000) == 0xe && ((.&.) op 0x00ff) == 0xa1 = if ks!!(fromIntegral . toInteger $ vx)
-                                                               then Left (rng, emu)
-                                                               else Left (rng, emu{pc=p+2})
-  
+  | in_range op 0xd000 0x1000  = Left (rng, draw_sprite emu x y $ (.&.) op 4)
+  | (.&.) op 0xf0ff == 0xe09e  = if ks!!(fromIntegral . toInteger $ vx)
+                                    then Left (rng, emu{pc=p+2})
+                                    else Left (rng, emu)
+  | (.&.) op 0xf0ff == 0xe0a1  = if ks!!(fromIntegral . toInteger $ vx)
+                                    then Left (rng, emu)
+                                    else Left (rng, emu{pc=p+2})
+  | (.&.) op 0xf0ff == 0xf015  = Left (rng, emu{delay_timer=fromIntegral vx})
+  | (.&.) op 0xf0ff == 0xf018  = Left (rng, emu{sound_timer=fromIntegral vx})
   | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
     where x = (`shiftR` 8) $ (.&.) op 0x0F00
           y = (`shiftR` 4) $ (.&.) op 0x00F0
