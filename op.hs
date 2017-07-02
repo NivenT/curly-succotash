@@ -67,6 +67,9 @@ alu emu x vx vy op
   | op == 0xe = emu{regs=rpl_nth rs x $ shiftL vx 1}
     where rs = regs emu
 
+get_key :: [Bool] -> Maybe Int
+get_key ks = foldl (\acc (ind, pressed) -> if pressed then Just ind else acc) Nothing . zip [0..] $ ks
+
 -- Todo: Replace `elem` with in_range function
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
@@ -85,11 +88,17 @@ exec_op emu op rng
                                  in if n == vx
                                        then Left (rng, emu)
                                        else Left (rng, emu{pc=p+2})
+  | in_range op 0x5000 0x1000  = if vx == vy
+                                    then Left (rng, emu{pc=p+2})
+                                    else Left (rng, emu)
   | in_range op 0x6000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x n})
   | in_range op 0x7000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x (vx+n)})
   | in_range op 0x8000 0x1000  = Left(rng, alu emu x vx vy $ (.&.) op 0x000f)
+  | in_range op 0x9000 0x1000  = if vx == vy
+                                    then Left (rng, emu)
+                                    else Left (rng, emu{pc=p+2})
   | in_range op 0xa000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{ptr=n})
   | in_range op 0xb000 0x1000  = let n = (.&.) op 0x0fff
@@ -106,10 +115,14 @@ exec_op emu op rng
                                     then Left (rng, emu)
                                     else Left (rng, emu{pc=p+2})
   | (.&.) op 0xf0ff == 0xf007  = Left (rng, emu{regs=rpl_nth rs x $ fromIntegral dt})
+  | (.&.) op 0xf0ff == 0xf00a  = case get_key ks of
+                                   Just i  -> Left(rng, emu{regs=rpl_nth rs x $ fromIntegral i})
+                                   Nothing -> Left(rng, emu{pc=p-2})
   | (.&.) op 0xf0ff == 0xf015  = Left (rng, emu{delay_timer=fromIntegral vx})
   | (.&.) op 0xf0ff == 0xf018  = Left (rng, emu{sound_timer=fromIntegral vx})
   | (.&.) op 0xf0ff == 0xf029  = Left (rng, emu{ptr=5 * fromIntegral vx})
   | (.&.) op 0xf0ff == 0xf033  = Left (rng, emu{mem=rpl m . zip [p'+2, p'+1, p'] $ digits vx})
+  | (.&.) op 0xf0ff == 0xf055  = Left (rng, emu{mem=rpl m . zip [p'..p'+x] . take (x+1) $ rs})
   | (.&.) op 0xf0ff == 0xf065  = Left (rng, emu{regs=rpl rs . zip [0..x] $ get m p' x})
   | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
     where x = (`shiftR` 8) $ (.&.) op 0x0F00
