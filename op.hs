@@ -6,6 +6,7 @@ module Op (
 import System.Random
 import Data.Bits
 import Data.Word
+import Data.List.Split
 import Numeric
 
 import Emulator
@@ -19,8 +20,25 @@ rpl_nth :: [a] -> Int -> a -> [a]
 rpl_nth (x:xs) 0 y = y:xs
 rpl_nth (x:xs) n y = y:rpl_nth xs (n-1) y
 
+flatten :: [[a]] -> [a]
+flatten (x:[]) = x
+flatten (x:xs) = x ++ flatten xs
+
+-- There's probably a less trash way to do this
 draw_sprite :: Chip8 -> Int -> Int -> Int -> Chip8
-draw_sprite emu x y n = emu
+draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag then 1 else 0)}
+  where m = mem emu
+        rs = regs emu
+        vx = rs!!x
+        vy = rs!!y
+        p = ptr emu
+        indices = flatten $ map (\r -> map (\c -> (r, c)) [0..8]) [0..h]
+        s = flatten . map (\(i, vals) -> map (\(j, val) -> if elem (i, j) indices then f i j val else (val, False)) vals) . map (\(i, row) -> (i, zip [0..] row)) . zip [0..] $ screen emu
+        (s', flag) = (map (\(v, b) -> v) s, any (\(v, b) -> b) s)
+        f i j v = let x = mod (vx+fromIntegral j) 64
+                      y = mod (vy+fromIntegral i) 32
+                      bit = 0 /= ((.&.) (m!!(p+fromIntegral i)) (shiftR 128 j))
+                  in (xor v bit, bit && (bit == v))
 
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
