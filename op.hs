@@ -19,7 +19,7 @@ rand_byte = random
 
 rpl_nth :: [a] -> Int -> a -> [a]
 rpl_nth (x:xs) 0 y = y:xs
-rpl_nth (x:xs) n y = y:rpl_nth xs (n-1) y
+rpl_nth (x:xs) n y = x:rpl_nth xs (n-1) y
 
 rpl :: [a] -> [(Int, a)] -> [a]
 rpl lst [] = lst
