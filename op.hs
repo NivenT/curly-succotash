@@ -37,12 +37,13 @@ draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag 
         vx = rs!!x
         vy = rs!!y
         p = ptr emu
-        indices = flatten $ map (\r -> map (\c -> (r, c)) [0..8]) [0..h]
-        s = flatten . map (\(i, vals) -> map (\(j, val) -> if elem (i, j) indices then f i j val else (val, False)) vals) . map (\(i, row) -> (i, zip [0..] row)) . zip [0..] $ screen emu
+        indices = map (\(r,c) -> (mod r 64, mod c 32)) . flatten . map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7]) $ [0..h-1]
+        indexed_screen = map (\(i, row) -> (i, zip [0..] row)) . zip [0..] $ screen emu
+        s = flatten . map (\(i, vals) -> map (\(j, val) -> if elem (i, j) indices then f i j val else (val, False)) vals) $ indexed_screen
         (s', flag) = (map (\(v, b) -> v) s, any (\(v, b) -> b) s)
-        f i j v = let x = mod (vx+fromIntegral j) 64
-                      y = mod (vy+fromIntegral i) 32
-                      bit = 0 /= ((.&.) (m!!(p+fromIntegral i)) (shiftR 128 j))
+        f i j v = let r' = fromIntegral $ fromIntegral i-vy
+                      c' = fromIntegral $ fromIntegral j-vx
+                      bit = 0 /= ((.&.) (m!!(p+r')) (shiftR 128 c'))
                   in (xor v bit, bit && (bit == v))
 
 in_range :: Int -> Int -> Int -> Bool
