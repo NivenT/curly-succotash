@@ -26,8 +26,9 @@ exec_op emu op rng
                                  in Left (rng, emu{pc=p+n-2})
   | op `elem` [0xc000..0xcfff] = let (r, g') = rand_byte rng
                                      rs      = regs emu
-                                     val     = (.&.) r (rs!!0)
-                                 in Left (g', emu{regs=rpl_nth rs 0 val})
-  | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented"
-    where x = (`shiftR` 2) $ (.&.) op 4
-          y = (`shiftR` 1) $ (.&.) op 2
+                                     n       = fromIntegral $ (.&.) op 3
+                                     val     = (.&.) r n
+                                 in Left (g', emu{regs=rpl_nth rs x val})
+  | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
+    where x = (`shiftR` 8) $ (.&.) op 0x0F00
+          y = (`shiftR` 4) $ (.&.) op 0x00F0
