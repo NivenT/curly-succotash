@@ -51,10 +51,26 @@ in_range val min len = min <= val && val < min + len
 digits :: Integral a => a -> [a]
 digits x = (mod x 10):(digits $ div x 10)
 
+get :: [a] -> Int -> Int -> [a]
+get lst start len = take len $ drop start lst
+
+alu :: Chip8 -> Int -> Word8 -> Word8 -> Int -> Chip8
+alu emu x vx vy op
+  | op == 0   = emu{regs=rpl_nth rs x vy}
+  | op == 1   = emu{regs=rpl_nth rs x $ (.|.) vx vy}
+  | op == 2   = emu{regs=rpl_nth rs x $ (.&.) vx vy}
+  | op == 3   = emu{regs=rpl_nth rs x $ xor vx vy}
+  | op == 4   = emu{regs=rpl_nth rs x $ vx + vy}
+  | op == 5   = emu{regs=rpl_nth rs x $ vx - vy}
+  | op == 6   = emu{regs=rpl_nth rs x $ shiftR vx 1}
+  | op == 7   = emu{regs=rpl_nth rs x $ vy - vx}
+  | op == 0xe = emu{regs=rpl_nth rs x $ shiftL vx 1}
+    where rs = regs emu
+
 -- Todo: Replace `elem` with in_range function
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
-  | trace ("Running instruction 0x" ++ (showHex op " ") ++ (disp_state emu)) False = undefined
+  -- | trace ("Running instruction 0x" ++ (showHex op " ") {- ++ (disp_state emu) -}) False = undefined
   | op == 0x00e0               = Left (rng, emu{screen = screen init_emu})
   | op == 0x00ee               = Left (rng, emu{pc=ss!!(s-1), sp=s-1})
   | in_range op 0x1000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
@@ -73,6 +89,7 @@ exec_op emu op rng
                                  in Left (rng, emu{regs=rpl_nth rs x n})
   | in_range op 0x7000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x (vx+n)})
+  | in_range op 0x8000 0x1000  = Left(rng, alu emu x vx vy $ (.&.) op 0x000f)
   | in_range op 0xa000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{ptr=n})
   | in_range op 0xb000 0x1000  = let n = (.&.) op 0x0fff
@@ -88,9 +105,12 @@ exec_op emu op rng
   | (.&.) op 0xf0ff == 0xe0a1  = if ks!!(fromIntegral . toInteger $ vx)
                                     then Left (rng, emu)
                                     else Left (rng, emu{pc=p+2})
+  | (.&.) op 0xf0ff == 0xf007  = Left (rng, emu{regs=rpl_nth rs x $ fromIntegral dt})
   | (.&.) op 0xf0ff == 0xf015  = Left (rng, emu{delay_timer=fromIntegral vx})
   | (.&.) op 0xf0ff == 0xf018  = Left (rng, emu{sound_timer=fromIntegral vx})
+  | (.&.) op 0xf0ff == 0xf029  = Left (rng, emu{ptr=5 * fromIntegral vx})
   | (.&.) op 0xf0ff == 0xf033  = Left (rng, emu{mem=rpl m . zip [p'+2, p'+1, p'] $ digits vx})
+  | (.&.) op 0xf0ff == 0xf065  = Left (rng, emu{regs=rpl rs . zip [0..x] $ get m p' x})
   | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
     where x = (`shiftR` 8) $ (.&.) op 0x0F00
           y = (`shiftR` 4) $ (.&.) op 0x00F0
@@ -103,3 +123,5 @@ exec_op emu op rng
           s = sp emu
           ss = stack emu
           m = mem emu
+          dt = delay_timer emu
+          st = sound_timer emu

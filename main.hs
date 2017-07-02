@@ -30,7 +30,7 @@ fps :: Int
 fps = 60
 
 draw_world :: (RandomGen g) => World g -> Picture
-draw_world _ | trace "Drawing world..." False = undefined
+--draw_world _ | trace "Drawing world..." False = undefined
 draw_world (_, emu) = render_emu emu
 
 handle_events :: (RandomGen g) => Event -> World g -> World g
