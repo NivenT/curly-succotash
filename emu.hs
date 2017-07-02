@@ -3,6 +3,7 @@ module Emulator (
   mem,
   regs,
   stack,
+  ptr,
   pc,
   sp,
   keyboard,
@@ -19,9 +20,10 @@ import Graphics.Gloss
 import Data.Word
 
 data Chip8 = Chip8 {
-  mem            :: [Word8],     -- 4096 1-byte address
-  regs           :: [Word8],     -- 16 registers
+  mem            :: [Word8],   -- 4096 1-byte address
+  regs           :: [Word8],   -- 16 registers
   stack          :: [Int],     -- 16(?) levels of addresses
+  ptr            :: Int,       -- I register (usually stores memory address)
   pc             :: Int,
   sp             :: Int,
   delay_timer    :: Int,
