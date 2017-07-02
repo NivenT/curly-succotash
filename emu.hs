@@ -89,9 +89,9 @@ get_opcode emu = fromIntegral $ 256 * (toInteger (m!!p)) + (toInteger (m!!(p+1))
         p = pc emu
 
 decr_timers :: Chip8 -> Chip8
-decr_timers emu = emu{delay_timer = min 0 $ d-1, sound_timer = min 0 $ s-1}
+decr_timers emu = emu{delay_timer = max 0 $ d-1, sound_timer = max 0 $ s-1}
   where d = delay_timer emu
         s = sound_timer emu
 
-load_game :: Chip8 -> [Word8] -> Chip8
-load_game emu game = emu{mem = fontset ++ (take 432 [0..]) ++ game ++ [0..]}
+load_game :: [Word8] -> Chip8
+load_game game = init_emu{mem = take 4096 $ fontset ++ (take 432 (repeat 0)) ++ game ++ (repeat 0)}

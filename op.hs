@@ -7,6 +7,7 @@ import System.Random
 import Data.Bits
 import Data.Word
 import Data.List.Split
+import Debug.Trace
 import Numeric
 
 import Emulator
@@ -37,7 +38,7 @@ draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag 
         (s', flag) = (map (\(v, b) -> v) s, any (\(v, b) -> b) s)
         f i j v = let x = mod (vx+fromIntegral j) 64
                       y = mod (vy+fromIntegral i) 32
-                      bit = 0 /= ((.&.) (m!!(mod (p+fromIntegral i) 16)) (shiftR 128 j))
+                      bit = 0 /= ((.&.) (m!!(p+fromIntegral i)) (shiftR 128 j))
                   in (xor v bit, bit && (bit == v))
 
 in_range :: Int -> Int -> Int -> Bool
@@ -70,7 +71,7 @@ exec_op emu op rng
                                      n       = fromIntegral $ (.&.) op 0x00ff
                                      val     = (.&.) r n
                                  in Left (g', emu{regs=rpl_nth rs x val})
-  | in_range op 0xd000 0x1000  = Left (rng, draw_sprite emu x y $ (.&.) op 4)
+  | in_range op 0xd000 0x1000  = Left (rng, draw_sprite emu x y $ (.&.) op 0x000f)
   | (.&.) op 0xf0ff == 0xe09e  = if ks!!(fromIntegral . toInteger $ vx)
                                     then Left (rng, emu{pc=p+2})
                                     else Left (rng, emu)
