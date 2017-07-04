@@ -1,6 +1,7 @@
 module Op (
   exec_op,
-  World
+  World,
+  rpl_nth
 ) where 
 
 import System.Random
@@ -73,7 +74,7 @@ alu emu x vx vy op
     where rs = regs emu
 
 get_key :: [Bool] -> Maybe Int
-get_key ks = foldl (\acc (ind, pressed) -> if pressed then Just ind else acc) Nothing . zip [0..] $ ks
+get_key ks = foldl (\acc (ind, down) -> if down then Just ind else acc) Nothing . zip [0..] $ ks
 
 -- Todo: Replace `elem` with in_range function
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
