@@ -19,8 +19,11 @@ module Emulator (
   disp_state,
 ) where
 
-import Graphics.Gloss
+import qualified Data.Map as Map
 import Data.Word
+import Debug.Trace
+
+import Graphics.Gloss
 
 data Chip8 = Chip8 {
   mem            :: [Word8],   -- 4096 1-byte address
@@ -32,7 +35,7 @@ data Chip8 = Chip8 {
   delay_timer    :: Int,
   sound_timer    :: Int,
   keys           :: [Bool],    -- 16 keys
-  screen         :: [[Bool]]   -- 64x32 pixels
+  screen         :: Map.Map (Int, Int) Bool --[[Bool]]   -- 64x32 pixels
 } deriving (Show)
 
 fontset :: [Word8]
@@ -66,7 +69,7 @@ init_emu = Chip8 {
   delay_timer = 0,
   sound_timer = 0,
   keys = take 16 $ repeat False,
-  screen = take 64 . repeat . take 32 $ repeat False
+  screen = Map.fromList [((r, c), False) | r <- [0..63], c <- [0..31]]
 }
   
 square :: Int -> Int -> Picture
@@ -74,11 +77,8 @@ square r c = Polygon $ map f [(r,c), (r,c+1), (r+1,c+1), (r+1,c)]
   where f (r, c) = (800.0/32.0 * (fromIntegral c) - 400.0, 600.0/64.0 * (fromIntegral r) - 300.0)
 
 render_emu :: Chip8 -> Picture
-render_emu emu = pictures . map drawRow . zip [0..] $ screen emu
-  where drawRow (r, row) = pictures . map (drawPixel r) $ zip [0..] row
-        drawPixel r (c, pix)
-          | pix       = Color white $ square r c
-          | otherwise = Color black $ square r c
+render_emu emu = pictures . Map.foldrWithKey draw_pixel [] $ screen emu
+  where draw_pixel (r, c) v lst = if v then (Color white $ square r c):lst else lst
 
 -- opcodes are 2 bytes long
 incr_pc :: Chip8 -> Chip8

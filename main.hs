@@ -14,7 +14,7 @@ import Op
 main :: IO ()
 main = do
   rng <- getStdGen
-  game <- BS.readFile "games/PONG"
+  game <- BS.readFile "games/PONG2"
 
   let emu = load_game (unpack game)
   let world = (rng, emu)

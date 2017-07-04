@@ -7,6 +7,7 @@ import System.Random
 import Data.Bits
 import Data.Word
 import Data.List.Split
+import qualified Data.Map as Map
 import Debug.Trace
 import Numeric
 
@@ -31,20 +32,23 @@ flatten (x:xs) = x ++ flatten xs
 
 -- There's probably a less trash way to do this
 draw_sprite :: Chip8 -> Int -> Int -> Int -> Chip8
-draw_sprite emu x y h = emu{screen=chunksOf 32 s', regs=rpl_nth rs 0xf (if flag then 1 else 0)}
+draw_sprite emu x y h = emu{screen=s', regs=rpl_nth rs 0xf (if flag then 1 else 0)}
   where m = mem emu
         rs = regs emu
         vx = rs!!x
         vy = rs!!y
         p = ptr emu
-        indices = map (\(r,c) -> (mod r 64, mod c 32)) . flatten . map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7]) $ [0..h-1]
-        indexed_screen = map (\(i, row) -> (i, zip [0..] row)) . zip [0..] $ screen emu
-        s = flatten . map (\(i, vals) -> map (\(j, val) -> if elem (i, j) indices then f i j val else (val, False)) vals) $ indexed_screen
-        (s', flag) = (map (\(v, b) -> v) s, any (\(v, b) -> b) s)
-        f i j v = let r' = fromIntegral $ fromIntegral i-vy
-                      c' = fromIntegral $ fromIntegral j-vx
-                      bit = 0 /= ((.&.) (m!!(p+r')) (shiftR 128 c'))
-                  in (xor v bit, bit && (bit == v))
+        indices = map (\(r,c) -> (mod r 64, mod c 32)) . flatten $
+          map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7])  [0..h-1]
+        s = Map.mapWithKey xor_pixel $ screen emu
+        xor_pixel (r, c) v
+          | (r, c) `elem` indices = let r' = fromIntegral $ fromIntegral r-vy
+                                        c' = fromIntegral $ fromIntegral c-vx
+                                        bit = 0 /= ((.&.) (m!!(p+r')) (shiftR 128 c'))
+                                    in (xor v bit,  bit && (bit == v))
+          | otherwise             = (v, False)
+        s' = Map.map (\(v, b) -> v) s
+        flag = Map.foldr (\(v, b) acc -> b || acc) False s
 
 in_range :: Int -> Int -> Int -> Bool
 in_range val min len = min <= val && val < min + len
