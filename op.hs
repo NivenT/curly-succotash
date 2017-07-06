@@ -66,11 +66,16 @@ alu emu x vx vy op
   | op == 1   = emu{regs=rpl_nth rs x $ (.|.) vx vy}
   | op == 2   = emu{regs=rpl_nth rs x $ (.&.) vx vy}
   | op == 3   = emu{regs=rpl_nth rs x $ xor vx vy}
-  | op == 4   = emu{regs=rpl_nth rs x $ vx + vy}
-  | op == 5   = emu{regs=rpl_nth rs x $ vx - vy}
-  | op == 6   = emu{regs=rpl_nth rs x $ shiftR vx 1}
-  | op == 7   = emu{regs=rpl_nth rs x $ vy - vx}
-  | op == 0xe = emu{regs=rpl_nth rs x $ shiftL vx 1}
+  | op == 4   = let vf = if vx > 255 - vy then 1 else 0
+                in emu{regs=rpl_nth (rpl_nth rs x $ vx + vy) 0xf vf}
+  | op == 5   = let vf = if vx < vy then 0 else 1
+                in emu{regs=rpl_nth (rpl_nth rs x $ vx - vy) 0xf vf}
+  | op == 6   = let vf = mod vx 2
+                in emu{regs=rpl_nth (rpl_nth rs x $ shiftR vx 1) 0xf vf}
+  | op == 7   = let vf = if vy < vx then 0 else 1
+                in emu{regs=rpl_nth (rpl_nth rs x $ vy - vx) 0xf vf}
+  | op == 0xe = let vf = if vx > 127 then 1 else 0
+                in emu{regs=rpl_nth (rpl_nth rs x $ shiftL vx 1) 0xf vf}
     where rs = regs emu
 
 get_key :: [Bool] -> Maybe Int
