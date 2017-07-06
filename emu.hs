@@ -78,7 +78,7 @@ square r c = Polygon $ map f [(r,c), (r,c+1), (r+1,c+1), (r+1,c)]
 
 render_emu :: Chip8 -> Picture
 render_emu emu = pictures . Map.foldrWithKey draw_pixel [] $ screen emu
-  where draw_pixel (r, c) v lst = if v then (Color white $ square r c):lst else lst
+  where draw_pixel (r, c) v lst = if v then (Color white $ square (63-r) c):lst else lst
 
 -- opcodes are 2 bytes long
 incr_pc :: Chip8 -> Chip8

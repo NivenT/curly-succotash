@@ -80,55 +80,83 @@ get_key ks = foldl (\acc (ind, down) -> if down then Just ind else acc) Nothing 
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
   -- | trace ("Running instruction 0x" ++ (showHex op " ") {- ++ (disp_state emu) -}) False = undefined
+  -- 0x00E0 clears the screen
   | op == 0x00e0               = Left (rng, emu{screen = screen init_emu})
+  -- 0x00EE returns from a subroutine
   | op == 0x00ee               = Left (rng, emu{pc=ss!!(s-1), sp=s-1})
+  -- 0x1NNN goto NNN;
   | in_range op 0x1000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{pc=n-2})
+  -- 0x2NNN Call subroutine at NNN
   | in_range op 0x2000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{pc=n-2, sp=s+1, stack=rpl_nth ss s p})
+  -- 0x3XNN skip if (VX == NN)
   | in_range op 0x3000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in if n == vx
                                        then Left (rng, emu{pc=p+2})
                                        else Left (rng, emu)
+  -- 0x4XNN skip if (VX != NN)
   | in_range op 0x4000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in if n == vx
                                        then Left (rng, emu)
                                        else Left (rng, emu{pc=p+2})
+  -- 0x5XY0 skip if (VX == VY)
   | in_range op 0x5000 0x1000  = if vx == vy
                                     then Left (rng, emu{pc=p+2})
                                     else Left (rng, emu)
+  -- 0x6XNN VX = NN
   | in_range op 0x6000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
                                  in Left (rng, emu{regs=rpl_nth rs x n})
+  -- 0x7XNN VX += NN
   | in_range op 0x7000 0x1000  = let n = fromIntegral $ (.&.) op 0x00ff
-                                 in Left (rng, emu{regs=rpl_nth rs x (vx+n)})
+                                 in Left (rng, emu{regs=rpl_nth rs x $ vx+n})
+  -- 0x8XYA permform arithmetic operation A (see alu) on VX and VY 
   | in_range op 0x8000 0x1000  = Left(rng, alu emu x vx vy $ (.&.) op 0x000f)
+  -- 0x9XY0 skip if (VX != VY)
   | in_range op 0x9000 0x1000  = if vx == vy
                                     then Left (rng, emu)
                                     else Left (rng, emu{pc=p+2})
+  -- 0xANNN I = NNN (In the code, I is ptr because I is a stupid name)
   | in_range op 0xa000 0x1000  = let n = fromIntegral $ (.&.) op 0x0fff
                                  in Left (rng, emu{ptr=n})
+  -- 0xBNNN PC=V0+NNN
   | in_range op 0xb000 0x1000  = let n = (.&.) op 0x0fff
-                                 in Left (rng, emu{pc=p+n-2})
+                                     v = rs!!0
+                                 in Left (rng, emu{pc=fromIntegral v+n-2})
+  -- 0xCXNN VX=rand() & NN
   | in_range op 0xc000 0x1000  = let (r, g') = rand_byte rng
                                      n       = fromIntegral $ (.&.) op 0x00ff
                                      val     = (.&.) r n
                                  in Left (g', emu{regs=rpl_nth rs x val})
+  -- 0xDXYN Draw the sprite in memory location I at screen location (VX, VY)
   | in_range op 0xd000 0x1000  = Left (rng, draw_sprite emu x y $ (.&.) op 0x000f)
+  -- 0xEX9E skip if (keys[VX])
   | (.&.) op 0xf0ff == 0xe09e  = if ks!!(fromIntegral . toInteger $ vx)
                                     then Left (rng, emu{pc=p+2})
                                     else Left (rng, emu)
+  -- 0xEXA1 skip if (!keys[VX])
   | (.&.) op 0xf0ff == 0xe0a1  = if ks!!(fromIntegral . toInteger $ vx)
                                     then Left (rng, emu)
                                     else Left (rng, emu{pc=p+2})
+  -- 0xFX07 VX = delay_timer
   | (.&.) op 0xf0ff == 0xf007  = Left (rng, emu{regs=rpl_nth rs x $ fromIntegral dt})
+  -- 0xFX0A Wait for a key press, then store key in VX (note: blocking operation)
   | (.&.) op 0xf0ff == 0xf00a  = case get_key ks of
                                    Just i  -> Left(rng, emu{regs=rpl_nth rs x $ fromIntegral i})
                                    Nothing -> Left(rng, emu{pc=p-2})
+  -- 0xFX15 delay_timer = VX
   | (.&.) op 0xf0ff == 0xf015  = Left (rng, emu{delay_timer=fromIntegral vx})
+  -- 0xFX18 sound_timer = VX
   | (.&.) op 0xf0ff == 0xf018  = Left (rng, emu{sound_timer=fromIntegral vx})
+  -- 0xFX1E I += VX
+  | (.&.) op 0xf0ff == 0xf01e  = Left (rng, emu{ptr=fromIntegral $ p' + fromIntegral vx})
+  -- 0xFX29 Sets I to the location of the sprite for the character in VX
   | (.&.) op 0xf0ff == 0xf029  = Left (rng, emu{ptr=5 * fromIntegral vx})
+  -- 0xFX33 Stores binary-coded decimal representation of VX at the address in I (MSD first)
   | (.&.) op 0xf0ff == 0xf033  = Left (rng, emu{mem=rpl m . zip [p'+2, p'+1, p'] $ digits vx})
+  -- 0xFX55 Stores V0 to VX (inclusive) in memory starting at address I
   | (.&.) op 0xf0ff == 0xf055  = Left (rng, emu{mem=rpl m . zip [p'..p'+x] . take (x+1) $ rs})
+  -- 0xFX65 Fills V0 to VX (inclusive) with values from memory starting at address I
   | (.&.) op 0xf0ff == 0xf065  = Left (rng, emu{regs=rpl rs . zip [0..x] $ get m p' x})
   | otherwise = Right $ "Instruction (0x" ++ (showHex op "") ++ ") has not yet been implemented (X = " ++ (showHex x "") ++ " | Y = " ++ (showHex y "") ++ ")" 
     where x = (`shiftR` 8) $ (.&.) op 0x0F00
