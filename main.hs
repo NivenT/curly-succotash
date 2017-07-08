@@ -69,6 +69,5 @@ handle_events _ w = w
 
 step_world :: (RandomGen g) => Float -> World g -> World g
 step_world _ (rng, emu) = case exec_op emu (get_opcode emu) rng of
-  Left (rng, emu) -> (rng, decr_timers . incr_pc $ emu)
+  Left (rng, emu) -> (rng, decr_timers . incr_pc . beep $ emu)
   Right err -> error err
-    

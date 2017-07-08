@@ -17,11 +17,17 @@ module Emulator (
   decr_timers,
   load_game,
   disp_state,
+  beep,
 ) where
 
 import qualified Data.Map as Map
 import Data.Word
 import Debug.Trace
+
+import System.IO.Unsafe
+import System.Process
+-- TODO: Use os to make beep OS-agnostic
+import System.Info
 
 import Graphics.Gloss
 
@@ -94,6 +100,12 @@ decr_timers emu = emu{delay_timer = max 0 $ d-1, sound_timer = max 0 $ s-1}
   where d = delay_timer emu
         s = sound_timer emu
 
+beep :: Chip8 -> Chip8
+beep emu = if sound_timer emu /= 1 then emu else
+             unsafePerformIO $ do
+               createProcess $ shell "play beep.wav -q"
+               return emu
+             
 load_game :: [Word8] -> Chip8
 load_game game = init_emu{mem = take 4096 $ fontset ++ (take 432 (repeat 0)) ++ game ++ (repeat 0)}
 
