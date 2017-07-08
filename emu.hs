@@ -26,16 +26,16 @@ import Debug.Trace
 import Graphics.Gloss
 
 data Chip8 = Chip8 {
-  mem            :: [Word8],   -- 4096 1-byte address
-  regs           :: [Word8],   -- 16 registers
-  stack          :: [Int],     -- 16(?) levels of addresses
-  ptr            :: Int,       -- I register (usually stores memory address)
+  mem            :: [Word8],                  -- 4096 1-byte address
+  regs           :: [Word8],                  -- 16 registers
+  stack          :: [Int],                    -- 16(?) levels of addresses
+  ptr            :: Int,                      -- I register (usually stores memory address)
   pc             :: Int,
   sp             :: Int,
   delay_timer    :: Int,
   sound_timer    :: Int,
-  keys           :: [Bool],    -- 16 keys
-  screen         :: Map.Map (Int, Int) Bool --[[Bool]]   -- 64x32 pixels
+  keys           :: [Bool],                   -- 16 keys
+  screen         :: Map.Map (Int, Int) Bool   -- 64x32 pixels
 } deriving (Show)
 
 fontset :: [Word8]
@@ -69,16 +69,16 @@ init_emu = Chip8 {
   delay_timer = 0,
   sound_timer = 0,
   keys = take 16 $ repeat False,
-  screen = Map.fromList [((r, c), False) | r <- [0..63], c <- [0..31]]
+  screen = Map.fromList [((r, c), False) | r <- [0..31], c <- [0..63]]
 }
   
 square :: Int -> Int -> Picture
 square r c = Polygon $ map f [(r,c), (r,c+1), (r+1,c+1), (r+1,c)]
-  where f (r, c) = (800.0/32.0 * (fromIntegral c) - 400.0, 600.0/64.0 * (fromIntegral r) - 300.0)
+  where f (r, c) = (800.0/64.0 * (fromIntegral c) - 400.0, 600.0/32.0 * (fromIntegral r) - 300.0)
 
 render_emu :: Chip8 -> Picture
 render_emu emu = pictures . Map.foldrWithKey draw_pixel [] $ screen emu
-  where draw_pixel (r, c) v lst = if v then (Color white $ square (63-r) c):lst else lst
+  where draw_pixel (r, c) v lst = if v then (Color white $ square (31-r) c):lst else lst
 
 -- opcodes are 2 bytes long
 incr_pc :: Chip8 -> Chip8

@@ -39,7 +39,7 @@ draw_sprite emu x y h = emu{screen=s', regs=rpl_nth rs 0xf (if flag then 1 else 
         vx = rs!!x
         vy = rs!!y
         p = ptr emu
-        indices = map (\(r,c) -> (mod r 64, mod c 32)) . flatten $
+        indices = map (\(r,c) -> (mod r 32, mod c 64)) . flatten $
           map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7])  [0..h-1]
         s = Map.mapWithKey xor_pixel $ screen emu
         xor_pixel (r, c) v
