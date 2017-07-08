@@ -43,8 +43,8 @@ draw_sprite emu x y h = emu{screen=s', regs=rpl_nth rs 0xf (if flag then 1 else 
           map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7])  [0..h-1]
         s = Map.mapWithKey xor_pixel $ screen emu
         xor_pixel (r, c) v
-          | (r, c) `elem` indices = let r' = fromIntegral $ fromIntegral r-vy
-                                        c' = fromIntegral $ fromIntegral c-vx
+          | (r, c) `elem` indices = let r' = (`mod` h) . fromIntegral $ fromIntegral r-vy
+                                        c' = (`mod` 8) . fromIntegral $ fromIntegral c-vx
                                         bit = 0 /= ((.&.) (m!!(p+r')) (shiftR 128 c'))
                                     in (xor v bit,  bit && (bit == v))
           | otherwise             = (v, False)
