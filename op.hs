@@ -26,10 +26,6 @@ rpl_nth (x:xs) n y = x:rpl_nth xs (n-1) y
 rpl :: [a] -> [(Int, a)] -> [a]
 rpl lst [] = lst
 rpl lst ((i, z):zs) = rpl_nth (rpl lst zs) i z
-  
-flatten :: [[a]] -> [a]
-flatten (x:[]) = x
-flatten (x:xs) = x ++ flatten xs
 
 -- There's probably a less trash way to do this
 draw_sprite :: Chip8 -> Int -> Int -> Int -> Chip8
@@ -39,8 +35,8 @@ draw_sprite emu x y h = emu{screen=s', regs=rpl_nth rs 0xf (if flag then 1 else 
         vx = rs!!x
         vy = rs!!y
         p = ptr emu
-        indices = map (\(r,c) -> (mod r 32, mod c 64)) . flatten $
-          map (\r -> map (\c -> (fromIntegral vy+r, fromIntegral vx+c)) [0..7])  [0..h-1]
+        indices = map (\(r,c) -> (mod r 32, mod c 64))
+          [(fromIntegral vy+r, fromIntegral vx+c) | r <- [0..h-1], c <- [0..7]]
         s = Map.mapWithKey xor_pixel $ screen emu
         xor_pixel (r, c) v
           | (r, c) `elem` indices = let r' = (`mod` h) . fromIntegral $ fromIntegral r-vy
@@ -49,7 +45,7 @@ draw_sprite emu x y h = emu{screen=s', regs=rpl_nth rs 0xf (if flag then 1 else 
                                     in (xor v bit,  bit && (bit == v))
           | otherwise             = (v, False)
         s' = Map.map (\(v, b) -> v) s
-        flag = Map.foldr (\(v, b) acc -> b || acc) False s
+        flag = any (\x -> x) $ Map.map (\(v, b) -> b) s
 
 in_range :: Int -> Int -> Int -> Bool
 in_range val min len = min <= val && val < min + len
@@ -81,7 +77,7 @@ alu emu x vx vy op
 get_key :: [Bool] -> Maybe Int
 get_key ks = foldl (\acc (ind, down) -> if down then Just ind else acc) Nothing . zip [0..] $ ks
 
--- Todo: Replace `elem` with in_range function
+-- Possible optimization: case (.&.) op 0xf000 of ...
 exec_op :: (RandomGen g) => Chip8 -> Int -> g -> Either (World g) String
 exec_op emu op rng
   -- | trace ("Running instruction 0x" ++ (showHex op " ") {- ++ (disp_state emu) -}) False = undefined
