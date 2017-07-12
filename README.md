@@ -1,5 +1,5 @@
 # curly-succotash
-Simple Chip-8 Emulator written in Haskell. Written to lean some Haskell, and as an example emulator. It was not written to be particularly fast, good, or user-friendly.
+Simple Chip-8 Emulator written in Haskell. Written to lean some Haskell, and as [an example emulator](https://nivent.github.io/blog/demystifying-emulators/). It was not written to be particularly fast, good, or user-friendly.
 
 ## How to Use
 Assuming you have [Haskell](https://www.haskell.org/) installed, the project comes with a [shell script](https://github.com/NivenT/curly-succotash/blob/master/build.sh) that makes it easy to build and run the program. The usage is
